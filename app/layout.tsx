@@ -9,8 +9,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Quiz Platform",
+  title: "C Quiz",
   description: "Take and host quizzes with share links and passwords",
+  icons: {
+    icon: "/logo.svg",
+  },
 };
 
 export default function RootLayout({

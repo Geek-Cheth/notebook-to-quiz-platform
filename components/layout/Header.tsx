@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AdminLogoutButton } from "@/components/layout/AdminLogoutButton";
+import { BrandLink } from "@/components/layout/BrandLink";
 import { cn } from "@/lib/utils";
 
 interface HeaderProps {
@@ -17,15 +18,7 @@ export function Header({ className, showAdmin = false }: HeaderProps) {
       )}
     >
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
-        <Link
-          href="/"
-          className="group flex items-center gap-2 text-sm font-semibold tracking-tight transition-opacity hover:opacity-80"
-        >
-          <span className="flex size-7 items-center justify-center rounded-md border border-border bg-secondary text-xs font-bold">
-            Q
-          </span>
-          <span className="hidden sm:inline">Quiz Platform</span>
-        </Link>
+        <BrandLink />
 
         {showAdmin && (
           <nav className="flex items-center gap-2 text-sm sm:gap-4">

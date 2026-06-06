@@ -1,10 +1,10 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Loader2, Shield } from "lucide-react";
 
+import { BrandLink } from "@/components/layout/BrandLink";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -63,15 +63,7 @@ function AdminLoginForm() {
   return (
     <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-4 py-12 sm:px-6">
       <div className="animate-fade-in mb-10 text-center">
-        <Link
-          href="/"
-          className="group mb-8 inline-flex items-center gap-2 text-sm font-semibold tracking-tight transition-opacity hover:opacity-80"
-        >
-          <span className="flex size-7 items-center justify-center rounded-md border border-border bg-secondary text-xs font-bold">
-            Q
-          </span>
-          <span>Quiz Platform</span>
-        </Link>
+        <BrandLink className="mb-8 inline-flex" showLabel />
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
           Admin access
         </h1>
