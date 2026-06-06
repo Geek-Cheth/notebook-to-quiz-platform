@@ -56,7 +56,7 @@ function decodeHtmlEntities(str) {
 }
 
 function cleanOptionText(text) {
-  return text.replace(/\$/g, '').trim();
+  return text.trim();
 }
 
 function extractQuizFromHtml(html) {

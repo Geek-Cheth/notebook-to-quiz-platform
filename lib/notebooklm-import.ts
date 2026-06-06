@@ -1,6 +1,7 @@
 import { createRequire } from "module";
 import { chromium } from "playwright";
 import type { ExtractedQuiz, QuizQuestionInput } from "./db-types";
+import { preprocessMathText } from "./math-text";
 
 const require = createRequire(import.meta.url);
 const parseBatchexecute = require("../scripts/parse-batchexecute.js") as {
@@ -72,10 +73,10 @@ export async function importQuizFromNotebookLmUrl(
 
 export function normalizeQuestion(q: QuizQuestionInput): QuizQuestionInput {
   return {
-    text: q.text.trim(),
-    options: q.options.map((o) => o.trim()),
+    text: preprocessMathText(q.text.trim()),
+    options: q.options.map((o) => preprocessMathText(o.trim())),
     correctIndex: q.correctIndex,
-    rationale: q.rationale ?? null,
+    rationale: q.rationale ? preprocessMathText(q.rationale.trim()) : null,
   };
 }
 

@@ -2,72 +2,12 @@
 
 import katex from "katex";
 
+import {
+  normalizeMathLatex,
+  preprocessMathText,
+  splitMathSegments,
+} from "@/lib/math-text";
 import { cn } from "@/lib/utils";
-
-type Segment =
-  | { type: "text"; content: string }
-  | { type: "math"; content: string };
-
-/** Split a string into plain-text and inline-math ($...$) segments. */
-export function splitMathSegments(text: string): Segment[] {
-  const segments: Segment[] = [];
-  let buffer = "";
-  let i = 0;
-
-  while (i < text.length) {
-    if (text[i] === "\\" && text[i + 1] === "$") {
-      buffer += "$";
-      i += 2;
-      continue;
-    }
-
-    if (text[i] === "$") {
-      if (buffer) {
-        segments.push({ type: "text", content: buffer });
-        buffer = "";
-      }
-
-      i++;
-      let mathContent = "";
-      let closed = false;
-
-      while (i < text.length) {
-        if (text[i] === "\\" && text[i + 1] === "$") {
-          mathContent += "$";
-          i += 2;
-        } else if (text[i] === "$") {
-          closed = true;
-          i++;
-          break;
-        } else {
-          mathContent += text[i];
-          i++;
-        }
-      }
-
-      if (closed && mathContent.length > 0) {
-        segments.push({ type: "math", content: mathContent });
-      } else {
-        buffer += "$" + mathContent;
-      }
-      continue;
-    }
-
-    buffer += text[i];
-    i++;
-  }
-
-  if (buffer) {
-    segments.push({ type: "text", content: buffer });
-  }
-
-  return segments;
-}
-
-/** NotebookLM JSON often double-escapes LaTeX: \\cdot → \cdot */
-function normalizeMathLatex(latex: string): string {
-  return latex.replace(/\\\\([a-zA-Z@]+)/g, "\\$1");
-}
 
 function renderMathHtml(latex: string): string | null {
   try {
@@ -105,7 +45,7 @@ export interface MathTextProps {
 }
 
 export function MathText({ text, className, as: Tag = "span" }: MathTextProps) {
-  const segments = splitMathSegments(text);
+  const segments = splitMathSegments(preprocessMathText(text));
 
   return (
     <Tag className={cn("math-text", className)}>
@@ -122,7 +62,7 @@ export function MathText({ text, className, as: Tag = "span" }: MathTextProps) {
 
 /** Plain text for aria-labels (strips $ delimiters, keeps math content). */
 export function mathTextToPlain(text: string): string {
-  return splitMathSegments(text)
+  return splitMathSegments(preprocessMathText(text))
     .map((segment) => segment.content)
     .join("");
 }
