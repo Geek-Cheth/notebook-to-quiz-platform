@@ -11,8 +11,11 @@ import {
   Loader2,
   Plus,
   RefreshCw,
+  Users,
 } from "lucide-react";
 
+import { DeleteQuizButton } from "@/components/admin/DeleteQuizButton";
+import { CountryLockEditor } from "@/components/admin/CountryLockEditor";
 import { Header } from "@/components/layout/Header";
 import { QuizTitleEditor } from "@/components/admin/QuizTitleEditor";
 import { Badge } from "@/components/ui/badge";
@@ -111,6 +114,21 @@ export default function AdminDashboardPage() {
     );
   }, []);
 
+  const handleQuizDeleted = useCallback((slug: string) => {
+    setQuizzes((prev) => prev.filter((quiz) => quiz.slug !== slug));
+  }, []);
+
+  const handleCountryLockUpdated = useCallback(
+    (slug: string, allowedCountries: string[] | null) => {
+      setQuizzes((prev) =>
+        prev.map((quiz) =>
+          quiz.slug === slug ? { ...quiz, allowedCountries } : quiz
+        )
+      );
+    },
+    []
+  );
+
   const origin =
     typeof window !== "undefined" ? window.location.origin : "";
 
@@ -178,12 +196,13 @@ export default function AdminDashboardPage() {
                 <Table className="table-fixed">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[38%]">Title</TableHead>
-                      <TableHead className="w-[14%]">Password</TableHead>
-                      <TableHead className="w-[10%]">Questions</TableHead>
-                      <TableHead className="w-[12%]">Submissions</TableHead>
-                      <TableHead className="w-[12%]">Avg. score</TableHead>
-                      <TableHead className="w-[14%] text-right">Actions</TableHead>
+                      <TableHead className="w-[30%]">Title</TableHead>
+                      <TableHead className="w-[12%]">Region</TableHead>
+                      <TableHead className="w-[12%]">Password</TableHead>
+                      <TableHead className="w-[8%]">Questions</TableHead>
+                      <TableHead className="w-[10%]">Submissions</TableHead>
+                      <TableHead className="w-[10%]">Avg. score</TableHead>
+                      <TableHead className="w-[18%] text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -196,6 +215,14 @@ export default function AdminDashboardPage() {
                               slug={quiz.slug}
                               title={quiz.title}
                               onUpdated={handleTitleUpdated}
+                            />
+                          </TableCell>
+                          <TableCell className="whitespace-normal">
+                            <CountryLockEditor
+                              slug={quiz.slug}
+                              allowedCountries={quiz.allowedCountries}
+                              onUpdated={handleCountryLockUpdated}
+                              compact
                             />
                           </TableCell>
                           <TableCell className="whitespace-normal">
@@ -216,6 +243,19 @@ export default function AdminDashboardPage() {
                           </TableCell>
                           <TableCell className="whitespace-normal text-right">
                             <div className="flex items-center justify-end gap-0.5">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                asChild
+                                className="size-7 p-0"
+                              >
+                                <Link
+                                  href={`/admin/quizzes/${quiz.slug}/submissions`}
+                                  aria-label="View submissions"
+                                >
+                                  <Users className="size-3" />
+                                </Link>
+                              </Button>
                               <CopyButton
                                 text={quiz.password}
                                 label="Copy password"
@@ -242,6 +282,11 @@ export default function AdminDashboardPage() {
                                   <ExternalLink className="size-3" />
                                 </Link>
                               </Button>
+                              <DeleteQuizButton
+                                slug={quiz.slug}
+                                title={quiz.title}
+                                onDeleted={handleQuizDeleted}
+                              />
                             </div>
                           </TableCell>
                         </TableRow>
@@ -271,6 +316,13 @@ export default function AdminDashboardPage() {
                         </Badge>
                       </div>
                       <div className="text-muted-foreground grid grid-cols-2 gap-2 text-xs">
+                        <div className="col-span-2">
+                          <CountryLockEditor
+                            slug={quiz.slug}
+                            allowedCountries={quiz.allowedCountries}
+                            onUpdated={handleCountryLockUpdated}
+                          />
+                        </div>
                         <div>
                           Password:{" "}
                           <code className="text-foreground font-mono">
@@ -286,6 +338,12 @@ export default function AdminDashboardPage() {
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-1">
+                        <Button variant="ghost" size="sm" asChild className="h-7 px-2">
+                          <Link href={`/admin/quizzes/${quiz.slug}/submissions`}>
+                            <Users className="size-3" />
+                            Submissions
+                          </Link>
+                        </Button>
                         <CopyButton
                           text={quiz.password}
                           label="Password"
@@ -298,6 +356,12 @@ export default function AdminDashboardPage() {
                             Preview
                           </Link>
                         </Button>
+                        <DeleteQuizButton
+                          slug={quiz.slug}
+                          title={quiz.title}
+                          onDeleted={handleQuizDeleted}
+                          className="size-7 p-0 text-destructive hover:text-destructive"
+                        />
                       </div>
                     </div>
                   );

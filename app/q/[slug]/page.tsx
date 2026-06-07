@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, Loader2, Send } from "lucide-react";
+import { ArrowLeft, ArrowRight, GlobeLock, Loader2, Send } from "lucide-react";
 
 import { Header } from "@/components/layout/Header";
 import { QuestionCard } from "@/components/quiz/QuestionCard";
@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { fetchQuizBySlug, submitQuiz } from "@/lib/api";
+import { COUNTRY_RESTRICTED_MESSAGE } from "@/lib/country-lock";
 import type { Quiz, SubmitResult } from "@/lib/types";
 
 type QuizPhase = "name" | "quiz" | "submitting" | "results";
@@ -91,7 +92,7 @@ export default function QuizPage() {
     return (
       <>
         <Header />
-        <main className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center">
+        <main className="flex flex-1 items-center justify-center">
           <Loader2 className="text-muted-foreground size-8 animate-spin" />
         </main>
       </>
@@ -99,14 +100,35 @@ export default function QuizPage() {
   }
 
   if (error && !quiz) {
+    const isRegionBlocked = error.includes(COUNTRY_RESTRICTED_MESSAGE);
+
     return (
       <>
         <Header />
-        <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-lg flex-col items-center justify-center px-4 text-center">
-          <p className="text-destructive mb-4">{error}</p>
-          <Button variant="outline" onClick={() => (window.location.href = "/")}>
-            Back to home
-          </Button>
+        <main className="mx-auto flex flex-1 max-w-lg flex-col items-center justify-center px-4 py-12 text-center">
+          {isRegionBlocked ? (
+            <Card className="animate-slide-up w-full border-border/80">
+              <CardHeader className="text-center">
+                <div className="bg-muted mx-auto mb-2 flex size-12 items-center justify-center rounded-full">
+                  <GlobeLock className="text-muted-foreground size-6" />
+                </div>
+                <CardTitle>Region restricted</CardTitle>
+                <CardDescription>{error}</CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center pb-6">
+                <Button variant="outline" onClick={() => (window.location.href = "/")}>
+                  Back to home
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <p className="text-destructive mb-4">{error}</p>
+              <Button variant="outline" onClick={() => (window.location.href = "/")}>
+                Back to home
+              </Button>
+            </>
+          )}
         </main>
       </>
     );

@@ -11,12 +11,43 @@ export interface ExtractedQuiz {
   questions: QuizQuestionInput[];
 }
 
+export interface ClientMetadataHints {
+  timezone?: string | null;
+  screen?: string | null;
+  language?: string | null;
+}
+
+export interface ClientMetadata {
+  ip: string | null;
+  headers: {
+    acceptLanguage: string | null;
+    referer: string | null;
+    userAgent: string | null;
+  };
+  userAgent: {
+    browser: string | null;
+    os: string | null;
+    deviceType: "mobile" | "desktop" | "tablet" | null;
+  };
+  geo: {
+    country: string | null;
+    countryCode: string | null;
+    region: string | null;
+    city: string | null;
+    timezone: string | null;
+    isp: string | null;
+  } | null;
+  clientHints: ClientMetadataHints | null;
+  capturedAt: string;
+}
+
 export interface QuizRow {
   id: string;
   slug: string;
   password: string;
   title: string;
   source_url: string | null;
+  allowed_countries: string[] | null;
   created_at: string;
 }
 
@@ -37,6 +68,7 @@ export interface SubmissionRow {
   answers: number[];
   score: number;
   total: number;
+  client_metadata: ClientMetadata | null;
   submitted_at: string;
 }
 
@@ -73,5 +105,6 @@ export interface QuizSummaryRow {
   question_count: number;
   submission_count: number;
   average_score: number | null;
+  allowed_countries: string[] | null;
   created_at: string;
 }

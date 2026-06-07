@@ -16,6 +16,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { fetchQuizByPassword } from "@/lib/api";
+import {
+  formatQuizPasswordInput,
+  isValidQuizPassword,
+  normalizeQuizPassword,
+} from "@/lib/password";
 
 export default function HomePage() {
   const router = useRouter();
@@ -27,15 +32,15 @@ export default function HomePage() {
     e.preventDefault();
     setError(null);
 
-    const trimmed = password.trim();
-    if (!/^\d{8}$/.test(trimmed)) {
-      setError("Enter a valid 8-digit quiz password.");
+    const normalized = normalizeQuizPassword(password);
+    if (!isValidQuizPassword(normalized)) {
+      setError("Enter a valid 4-character quiz password (letters and numbers).");
       return;
     }
 
     setLoading(true);
     try {
-      const { slug } = await fetchQuizByPassword(trimmed);
+      const { slug } = await fetchQuizByPassword(normalized);
       router.push(`/q/${slug}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Quiz not found.");
@@ -47,13 +52,13 @@ export default function HomePage() {
   return (
     <>
       <Header />
-      <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-lg flex-col justify-center px-4 py-12 sm:px-6">
+      <main className="mx-auto flex flex-1 max-w-lg flex-col justify-center px-4 py-12 sm:px-6">
         <div className="animate-fade-in mb-10 text-center">
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
             Join a quiz
           </h1>
           <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-            Enter the 8-digit password from your instructor.
+            Enter the 4-character password from your instructor.
           </p>
         </div>
 
@@ -65,7 +70,7 @@ export default function HomePage() {
                 <CardTitle className="text-base">Quiz password</CardTitle>
               </div>
               <CardDescription>
-                8-digit code provided by your instructor
+                4-character code (letters and numbers)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -76,14 +81,12 @@ export default function HomePage() {
                   </Label>
                   <Input
                     id="password"
-                    inputMode="numeric"
-                    pattern="\d{8}"
-                    maxLength={8}
-                    placeholder="12345678"
+                    inputMode="text"
+                    pattern="[A-Z0-9]{4}"
+                    maxLength={4}
+                    placeholder="A1B2"
                     value={password}
-                    onChange={(e) =>
-                      setPassword(e.target.value.replace(/\D/g, "").slice(0, 8))
-                    }
+                    onChange={(e) => setPassword(formatQuizPasswordInput(e.target.value))}
                     className="text-center font-mono text-lg tracking-[0.3em]"
                     autoComplete="off"
                   />

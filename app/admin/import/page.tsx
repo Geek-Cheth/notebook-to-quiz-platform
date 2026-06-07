@@ -80,7 +80,7 @@ export default function AdminImportPage() {
               <CardTitle className="text-base">Quiz URL</CardTitle>
             </div>
             <CardDescription>
-              Paste the full URL of the quiz you want to import
+              Paste the full URL of a public NotebookLM quiz artifact to import
             </CardDescription>
           </CardHeader>
           <CardContent>

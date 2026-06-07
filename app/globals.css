@@ -62,6 +62,54 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
+  /* Ambient dual-layer grid — fixed behind all content via BackgroundGrid */
+  .background-grid {
+    --grid-bg: #0a0a0a;
+    --grid-fine: rgba(255, 255, 255, 0.02);
+    --grid-major: rgba(255, 255, 255, 0.045);
+    --grid-dot: rgba(255, 255, 255, 0.09);
+    background-color: var(--grid-bg);
+    background-image:
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 0%, transparent 16rem),
+      radial-gradient(
+        ellipse 88% 78% at 50% 40%,
+        transparent 22%,
+        var(--grid-bg) 70%
+      ),
+      linear-gradient(var(--grid-major) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
+      linear-gradient(var(--grid-fine) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-fine) 1px, transparent 1px),
+      radial-gradient(
+        circle 0.5px at center,
+        var(--grid-dot) 0%,
+        transparent 100%
+      );
+    background-size:
+      100% 100%,
+      100% 100%,
+      96px 96px,
+      96px 96px,
+      24px 24px,
+      24px 24px,
+      24px 24px;
+    background-position: center;
+    contain: strict;
+  }
+
+  @media (max-width: 640px) {
+    .background-grid {
+      background-size:
+        100% 100%,
+        100% 100%,
+        72px 72px,
+        72px 72px,
+        18px 18px,
+        18px 18px,
+        18px 18px;
+    }
+  }
+
   .katex {
     color: inherit;
     font-size: 1em;

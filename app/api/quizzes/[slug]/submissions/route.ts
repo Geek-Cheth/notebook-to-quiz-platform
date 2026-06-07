@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin-auth";
 import { handleApiError } from "@/lib/api-utils";
-import { listQuizSubmissions } from "@/lib/quiz";
+import { listQuizSubmissions, toSubmissionSummaries } from "@/lib/quiz";
 
 export const runtime = "nodejs";
 
@@ -18,14 +18,7 @@ export async function GET(
 
     return NextResponse.json({
       slug,
-      submissions: submissions.map((s) => ({
-        id: s.id,
-        studentName: s.student_name,
-        answers: s.answers,
-        score: s.score,
-        total: s.total,
-        submittedAt: s.submitted_at,
-      })),
+      submissions: toSubmissionSummaries(submissions),
     });
   } catch (err) {
     return handleApiError(err);

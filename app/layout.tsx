@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 
+import { BackgroundGrid } from "@/components/layout/BackgroundGrid";
+
 import "./globals.css";
 
 const inter = Inter({
@@ -23,8 +25,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} font-sans min-h-screen`}>
-        {children}
+      <body className={`${inter.variable} font-sans min-h-screen overflow-x-hidden`}>
+        <BackgroundGrid />
+        <div className="relative z-10 flex min-h-screen flex-col">{children}</div>
       </body>
     </html>
   );

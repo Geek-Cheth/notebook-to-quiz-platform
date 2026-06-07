@@ -61,7 +61,7 @@ function AdminLoginForm() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-4 py-12 sm:px-6">
+    <main className="mx-auto flex flex-1 max-w-lg flex-col justify-center px-4 py-12 sm:px-6">
       <div className="animate-fade-in mb-10 text-center">
         <BrandLink className="mb-8 inline-flex" showLabel />
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -132,7 +132,7 @@ export default function AdminLoginPage() {
   return (
     <Suspense
       fallback={
-        <main className="flex min-h-screen items-center justify-center">
+        <main className="flex flex-1 items-center justify-center">
           <Loader2 className="text-muted-foreground size-8 animate-spin" />
         </main>
       }

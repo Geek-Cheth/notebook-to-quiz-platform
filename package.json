@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev --turbopack -p 3001",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3001",
     "lint": "next lint",
     "db:migrate": "tsx scripts/migrate.ts",
+    "db:regenerate-passwords": "tsx scripts/regenerate-passwords.ts",
     "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {

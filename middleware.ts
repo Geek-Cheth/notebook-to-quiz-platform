@@ -14,7 +14,7 @@ function isProtectedPath(pathname: string): boolean {
   if (pathname.startsWith("/admin")) return true;
   if (pathname.startsWith("/api/admin")) return true;
   if (pathname === "/api/quizzes/import") return true;
-  if (/^\/api\/quizzes\/[^/]+\/submissions$/.test(pathname)) return true;
+  if (/^\/api\/quizzes\/[^/]+\/submissions(\/[^/]+)?$/.test(pathname)) return true;
 
   return false;
 }
@@ -49,5 +49,6 @@ export const config = {
     "/api/admin/:path*",
     "/api/quizzes/import",
     "/api/quizzes/:slug/submissions",
+    "/api/quizzes/:slug/submissions/:id",
   ],
 };

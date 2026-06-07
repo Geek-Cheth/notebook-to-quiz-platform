@@ -19,6 +19,7 @@ export interface QuizSummary {
   questionCount: number;
   submissionCount: number;
   averageScore: number | null;
+  allowedCountries: string[] | null;
   createdAt: string;
 }
 
@@ -50,6 +51,47 @@ export interface ImportResult {
   title: string;
   password: string;
   questionCount: number;
+}
+
+export interface ClientMetadata {
+  ip: string | null;
+  country: string | null;
+  city: string | null;
+  region: string | null;
+  timezone: string | null;
+  isp: string | null;
+  browser: string | null;
+  os: string | null;
+  device: string | null;
+  userAgent: string | null;
+  acceptLanguage: string | null;
+}
+
+export interface SubmissionSummary {
+  id: string;
+  studentName: string;
+  score: number;
+  total: number;
+  percentage: number;
+  submittedAt: string;
+  clientMetadata?: ClientMetadata | null;
+}
+
+export interface SubmissionReview {
+  id: string;
+  studentName: string;
+  score: number;
+  total: number;
+  percentage: number;
+  submittedAt: string;
+  quizTitle: string;
+  results: QuestionResult[];
+  clientMetadata?: ClientMetadata | null;
+}
+
+export interface QuizSubmissionsResponse {
+  slug: string;
+  submissions: SubmissionSummary[];
 }
 
 export interface ApiError {

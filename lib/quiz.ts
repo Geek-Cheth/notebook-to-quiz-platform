@@ -1,5 +1,14 @@
 import { sql } from "./db";
+import { generatePassword, isValidQuizPassword, normalizeQuizPassword } from "./password";
+import {
+  COUNTRY_RESTRICTED_MESSAGE,
+  isCountryAllowed,
+  normalizeCountryCodes,
+  parseAllowedCountries,
+} from "./country-lock";
+import { toPublicClientMetadata } from "./request-metadata";
 import type {
+  ClientMetadata,
   DbSubmitResult,
   ExtractedQuiz,
   GradedQuestionResult,
@@ -11,9 +20,10 @@ import type {
   SubmissionRow,
 } from "./db-types";
 
+const REGION_BLOCKED_MESSAGE = COUNTRY_RESTRICTED_MESSAGE;
+
 const SLUG_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789";
 const SLUG_LENGTH = 10;
-const PASSWORD_LENGTH = 8;
 const MAX_UNIQUE_ATTEMPTS = 20;
 
 export function generateSlug(): string {
@@ -22,14 +32,6 @@ export function generateSlug(): string {
     slug += SLUG_CHARS[Math.floor(Math.random() * SLUG_CHARS.length)];
   }
   return slug;
-}
-
-export function generatePassword(): string {
-  let password = "";
-  for (let i = 0; i < PASSWORD_LENGTH; i++) {
-    password += Math.floor(Math.random() * 10).toString();
-  }
-  return password;
 }
 
 async function generateUniqueSlug(): Promise<string> {
@@ -134,14 +136,18 @@ export async function createQuiz(data: ExtractedQuiz): Promise<QuizRow & { quest
 
 export async function getQuizBySlug(slug: string): Promise<(QuizRow & { questions: PublicQuestion[] }) | null> {
   const quizRows = await sql`
-    SELECT id, slug, password, title, source_url, created_at
+    SELECT id, slug, password, title, source_url, allowed_countries, created_at
     FROM quizzes
     WHERE slug = ${slug}
     LIMIT 1
   `;
   if (quizRows.length === 0) return null;
 
-  const quiz = quizRows[0] as QuizRow;
+  const row = quizRows[0] as QuizRow;
+  const quiz: QuizRow = {
+    ...row,
+    allowed_countries: parseAllowedCountries(row.allowed_countries),
+  };
   const questionRows = await sql`
     SELECT id, order_num, text, options
     FROM questions
@@ -175,11 +181,12 @@ export async function getQuizQuestionsWithAnswers(quizId: string): Promise<Quest
 }
 
 export async function getQuizSlugByPassword(password: string): Promise<string | null> {
-  if (!/^\d{8}$/.test(password)) {
+  const normalized = normalizeQuizPassword(password);
+  if (!isValidQuizPassword(normalized)) {
     return null;
   }
   const rows = await sql`
-    SELECT slug FROM quizzes WHERE password = ${password} LIMIT 1
+    SELECT slug FROM quizzes WHERE password = ${normalized} LIMIT 1
   `;
   if (rows.length === 0) return null;
   return (rows[0] as { slug: string }).slug;
@@ -188,7 +195,8 @@ export async function getQuizSlugByPassword(password: string): Promise<string | 
 export async function submitQuizAnswers(
   slug: string,
   studentName: string,
-  answers: (number | null)[]
+  answers: (number | null)[],
+  metadata?: ClientMetadata | null
 ): Promise<DbSubmitResult> {
   const trimmedName = studentName?.trim();
   if (!trimmedName) {
@@ -196,19 +204,37 @@ export async function submitQuizAnswers(
   }
 
   const quizRows = await sql`
-    SELECT id FROM quizzes WHERE slug = ${slug} LIMIT 1
+    SELECT id, allowed_countries FROM quizzes WHERE slug = ${slug} LIMIT 1
   `;
   if (quizRows.length === 0) {
     throw new Error("Quiz not found");
   }
 
-  const quizId = (quizRows[0] as { id: string }).id;
+  const quiz = quizRows[0] as { id: string; allowed_countries: string[] | null };
+  const quizId = quiz.id;
+
+  if (
+    !isCountryAllowed(
+      quiz.allowed_countries,
+      metadata?.geo?.countryCode ?? null
+    )
+  ) {
+    throw new Error(REGION_BLOCKED_MESSAGE);
+  }
+
   const questions = await getQuizQuestionsWithAnswers(quizId);
   const { score, total, results } = gradeSubmission(questions, answers);
 
   const submissionRows = await sql`
-    INSERT INTO submissions (quiz_id, student_name, answers, score, total)
-    VALUES (${quizId}, ${trimmedName}, ${JSON.stringify(answers)}, ${score}, ${total})
+    INSERT INTO submissions (quiz_id, student_name, answers, score, total, client_metadata)
+    VALUES (
+      ${quizId},
+      ${trimmedName},
+      ${JSON.stringify(answers)},
+      ${score},
+      ${total},
+      ${metadata ? JSON.stringify(metadata) : null}
+    )
     RETURNING id
   `;
 
@@ -244,12 +270,48 @@ export async function updateQuizTitle(
   return rows[0] as QuizRow;
 }
 
+export async function updateQuizCountryLock(
+  slug: string,
+  allowedCountries: string[] | null
+): Promise<{ slug: string; allowedCountries: string[] | null }> {
+  let normalized: string[] | null = null;
+
+  if (allowedCountries !== null) {
+    if (!Array.isArray(allowedCountries)) {
+      throw new Error("allowedCountries must be an array or null");
+    }
+
+    normalized = normalizeCountryCodes(allowedCountries);
+    if (normalized.length === 0) {
+      throw new Error("At least one valid country code is required");
+    }
+  }
+
+  const rows = await sql`
+    UPDATE quizzes
+    SET allowed_countries = ${normalized}
+    WHERE slug = ${slug}
+    RETURNING slug, allowed_countries
+  `;
+
+  if (rows.length === 0) {
+    throw new Error("Quiz not found");
+  }
+
+  const row = rows[0] as { slug: string; allowed_countries: string[] | null };
+  return {
+    slug: row.slug,
+    allowedCountries: parseAllowedCountries(row.allowed_countries),
+  };
+}
+
 export async function listAllQuizzes(): Promise<QuizSummaryRow[]> {
   const rows = await sql`
     SELECT
       q.slug,
       q.title,
       q.password,
+      q.allowed_countries,
       q.created_at,
       COUNT(DISTINCT qu.id)::int AS question_count,
       COUNT(DISTINCT s.id)::int AS submission_count,
@@ -260,10 +322,55 @@ export async function listAllQuizzes(): Promise<QuizSummaryRow[]> {
     FROM quizzes q
     LEFT JOIN questions qu ON qu.quiz_id = q.id
     LEFT JOIN submissions s ON s.quiz_id = q.id
-    GROUP BY q.id, q.slug, q.title, q.password, q.created_at
+    GROUP BY q.id, q.slug, q.title, q.password, q.allowed_countries, q.created_at
     ORDER BY q.created_at DESC
   `;
-  return rows as QuizSummaryRow[];
+  return (rows as QuizSummaryRow[]).map((row) => ({
+    ...row,
+    allowed_countries: parseAllowedCountries(row.allowed_countries),
+  }));
+}
+
+export async function deleteQuiz(slug: string): Promise<void> {
+  const rows = await sql`
+    DELETE FROM quizzes WHERE slug = ${slug} RETURNING id
+  `;
+  if (rows.length === 0) {
+    throw new Error("Quiz not found");
+  }
+}
+
+export async function getSubmissionReview(
+  slug: string,
+  submissionId: string
+): Promise<
+  (SubmissionRow & { results: GradedQuestionResult[]; quizTitle: string }) | null
+> {
+  const quizRows = await sql`
+    SELECT id, title FROM quizzes WHERE slug = ${slug} LIMIT 1
+  `;
+  if (quizRows.length === 0) {
+    throw new Error("Quiz not found");
+  }
+
+  const quiz = quizRows[0] as { id: string; title: string };
+  const quizId = quiz.id;
+  const submissionRows = await sql`
+    SELECT id, quiz_id, student_name, answers, score, total, submitted_at, client_metadata
+    FROM submissions
+    WHERE id = ${submissionId} AND quiz_id = ${quizId}
+    LIMIT 1
+  `;
+  if (submissionRows.length === 0) {
+    return null;
+  }
+
+  const submission = submissionRows[0] as SubmissionRow;
+  const questions = await getQuizQuestionsWithAnswers(quizId);
+  const answers = submission.answers as (number | null)[];
+  const { results } = gradeSubmission(questions, answers);
+
+  return { ...submission, results, quizTitle: quiz.title };
 }
 
 export async function listQuizSubmissions(slug: string): Promise<SubmissionRow[]> {
@@ -276,7 +383,7 @@ export async function listQuizSubmissions(slug: string): Promise<SubmissionRow[]
 
   const quizId = (quizRows[0] as { id: string }).id;
   const rows = await sql`
-    SELECT id, quiz_id, student_name, answers, score, total, submitted_at
+    SELECT id, quiz_id, student_name, answers, score, total, submitted_at, client_metadata
     FROM submissions
     WHERE quiz_id = ${quizId}
     ORDER BY submitted_at DESC
@@ -336,6 +443,46 @@ export function toAdminQuizSummaries(rows: QuizSummaryRow[]) {
     questionCount: row.question_count,
     submissionCount: row.submission_count,
     averageScore: row.average_score,
+    allowedCountries: row.allowed_countries,
     createdAt: row.created_at,
   }));
+}
+
+export function toSubmissionSummaries(rows: SubmissionRow[]) {
+  return rows.map((s) => ({
+    id: s.id,
+    studentName: s.student_name,
+    score: s.score,
+    total: s.total,
+    percentage: s.total > 0 ? Math.round((s.score / s.total) * 100) : 0,
+    submittedAt: s.submitted_at,
+    clientMetadata: toPublicClientMetadata(s.client_metadata),
+  }));
+}
+
+export function toSubmissionReview(
+  submission: SubmissionRow & {
+    results: GradedQuestionResult[];
+    quizTitle: string;
+  }
+) {
+  const graded = toSubmitResponse({
+    submissionId: submission.id,
+    studentName: submission.student_name,
+    score: submission.score,
+    total: submission.total,
+    results: submission.results,
+  });
+
+  return {
+    id: submission.id,
+    studentName: submission.student_name,
+    score: graded.score,
+    total: graded.total,
+    percentage: graded.percentage,
+    submittedAt: submission.submitted_at,
+    quizTitle: submission.quizTitle,
+    results: graded.results,
+    clientMetadata: toPublicClientMetadata(submission.client_metadata),
+  };
 }

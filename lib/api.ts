@@ -2,7 +2,9 @@ import type {
   ApiError,
   ImportResult,
   Quiz,
+  QuizSubmissionsResponse,
   QuizSummary,
+  SubmissionReview,
   SubmitPayload,
   SubmitResult,
 } from "./types";
@@ -63,4 +65,44 @@ export async function updateAdminQuizTitle(
     body: JSON.stringify({ title }),
   });
   return handleResponse<{ slug: string; title: string }>(res);
+}
+
+export async function updateAdminQuizCountryLock(
+  slug: string,
+  allowedCountries: string[] | null
+): Promise<{ slug: string; allowedCountries: string[] | null }> {
+  const res = await fetch(`/api/admin/quizzes/${slug}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ allowedCountries }),
+  });
+  return handleResponse<{ slug: string; allowedCountries: string[] | null }>(
+    res
+  );
+}
+
+export async function deleteQuiz(slug: string): Promise<void> {
+  const res = await fetch(`/api/admin/quizzes/${slug}`, {
+    method: "DELETE",
+  });
+  await handleResponse<{ ok: boolean }>(res);
+}
+
+export async function fetchQuizSubmissions(
+  slug: string
+): Promise<QuizSubmissionsResponse> {
+  const res = await fetch(`/api/quizzes/${slug}/submissions`, {
+    cache: "no-store",
+  });
+  return handleResponse<QuizSubmissionsResponse>(res);
+}
+
+export async function fetchSubmissionReview(
+  slug: string,
+  submissionId: string
+): Promise<SubmissionReview> {
+  const res = await fetch(`/api/quizzes/${slug}/submissions/${submissionId}`, {
+    cache: "no-store",
+  });
+  return handleResponse<SubmissionReview>(res);
 }

@@ -1,6 +1,9 @@
 /**
- * Extract all questions from a public NotebookLM quiz share URL.
- * Uses Playwright frame access + UI automation to capture Q/A + correct answers.
+ * Optional CLI fallback for local development when fetch-based import is insufficient.
+ * Requires Playwright browsers: npx playwright install chromium
+ *
+ * Web import (/admin/import) uses fetch-only capture in lib/notebooklm-import.ts and
+ * does not need Playwright.
  */
 const { chromium } = require('playwright');
 const fs = require('fs');

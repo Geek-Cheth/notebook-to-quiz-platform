@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleApiError, jsonError } from "@/lib/api-utils";
 import { submitQuizAnswers, toSubmitResponse } from "@/lib/quiz";
+import { buildClientMetadata } from "@/lib/request-metadata";
 
 export const runtime = "nodejs";
 
@@ -24,7 +25,13 @@ export async function POST(
       return jsonError("answers array is required");
     }
 
-    const result = await submitQuizAnswers(slug, body.studentName, body.answers);
+    const metadata = await buildClientMetadata(request);
+    const result = await submitQuizAnswers(
+      slug,
+      body.studentName,
+      body.answers,
+      metadata
+    );
     return NextResponse.json(toSubmitResponse(result));
   } catch (err) {
     return handleApiError(err);
