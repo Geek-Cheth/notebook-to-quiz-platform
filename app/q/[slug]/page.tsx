@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, GlobeLock, Loader2, Send } from "lucide-react";
 
@@ -105,29 +106,44 @@ export default function QuizPage() {
     return (
       <>
         <Header />
-        <main className="mx-auto flex flex-1 max-w-lg flex-col items-center justify-center px-4 py-12 text-center">
+        <main className="mx-auto flex flex-1 max-w-lg flex-col justify-center px-4 py-12 sm:px-6">
           {isRegionBlocked ? (
-            <Card className="animate-slide-up w-full border-border/80">
-              <CardHeader className="text-center">
-                <div className="bg-muted mx-auto mb-2 flex size-12 items-center justify-center rounded-full">
-                  <GlobeLock className="text-muted-foreground size-6" />
-                </div>
-                <CardTitle>Region restricted</CardTitle>
-                <CardDescription>{error}</CardDescription>
-              </CardHeader>
-              <CardContent className="flex justify-center pb-6">
-                <Button variant="outline" onClick={() => (window.location.href = "/")}>
-                  Back to home
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
             <>
-              <p className="text-destructive mb-4">{error}</p>
-              <Button variant="outline" onClick={() => (window.location.href = "/")}>
-                Back to home
-              </Button>
+              <div className="animate-fade-in mb-10 text-center">
+                <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                  Region restricted
+                </h1>
+                <p className="text-muted-foreground mt-2 text-sm sm:text-base">
+                  This quiz is not available in your region.
+                </p>
+              </div>
+              <div className="animate-slide-up mx-auto w-full max-w-md">
+                <Card className="border-border/80">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <GlobeLock className="text-muted-foreground size-4" />
+                      <CardTitle className="text-base">Access unavailable</CardTitle>
+                    </div>
+                    <CardDescription>
+                      Your location is outside the allowed regions for this quiz.
+                      Contact your instructor if you believe this is a mistake.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button variant="outline" className="w-full" asChild>
+                      <Link href="/">Back to home</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
             </>
+          ) : (
+            <div className="animate-slide-up mx-auto w-full max-w-md text-center">
+              <p className="text-destructive mb-6 text-sm">{error}</p>
+              <Button variant="outline" className="w-full" asChild>
+                <Link href="/">Back to home</Link>
+              </Button>
+            </div>
           )}
         </main>
       </>
