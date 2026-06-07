@@ -59,6 +59,49 @@ function cleanOptionText(text) {
   return text.trim();
 }
 
+/** FNV-1a hash for deterministic per-question shuffle seeds. */
+function hashSeed(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function seededRandom(seed) {
+  return () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 0xffffffff;
+  };
+}
+
+/**
+ * NotebookLM stores the correct option first in source data and shuffles in its UI.
+ * We shuffle on import so the correct answer is not always choice A.
+ */
+function shuffleQuestionOptions(options, correctIndex, seedKey) {
+  if (options.length <= 1 || correctIndex < 0) {
+    return { options, correctIndex };
+  }
+
+  const rng = seededRandom(hashSeed(seedKey));
+  const indexed = options.map((text, i) => ({
+    text,
+    isCorrect: i === correctIndex,
+  }));
+
+  for (let i = indexed.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [indexed[i], indexed[j]] = [indexed[j], indexed[i]];
+  }
+
+  return {
+    options: indexed.map((entry) => entry.text),
+    correctIndex: indexed.findIndex((entry) => entry.isCorrect),
+  };
+}
+
 function extractQuizFromHtml(html) {
   const match = html.match(/data-app-data="\s*([\s\S]*?)\s*"/i);
   if (!match) throw new Error('data-app-data not found');
@@ -72,16 +115,25 @@ function extractQuizFromHtml(html) {
     const options = (item.answerOptions || item.options || []).map((o) =>
       cleanOptionText(typeof o === 'string' ? o : o.text)
     );
-    const correctIndex = (item.answerOptions || item.options || []).findIndex((o) =>
+    const rawCorrectIndex = (item.answerOptions || item.options || []).findIndex((o) =>
       typeof o === 'object' ? o.isCorrect : false
+    );
+    const questionText = item.question || item.text;
+    const shuffled = shuffleQuestionOptions(
+      options,
+      rawCorrectIndex,
+      `${i + 1}:${questionText}`
     );
 
     return {
       number: i + 1,
-      text: item.question || item.text,
-      options,
-      correctIndex,
-      correctAnswer: correctIndex >= 0 ? options[correctIndex] : null,
+      text: questionText,
+      options: shuffled.options,
+      correctIndex: shuffled.correctIndex,
+      correctAnswer:
+        shuffled.correctIndex >= 0
+          ? shuffled.options[shuffled.correctIndex]
+          : null,
       rationale: (item.answerOptions || []).find((o) => o.isCorrect)?.rationale || null,
     };
   });
@@ -140,6 +192,7 @@ module.exports = {
   extractHtmlFromPayload,
   extractQuizFromHtml,
   parseQuizFromRaw,
+  shuffleQuestionOptions,
 };
 
 if (require.main === module) {
